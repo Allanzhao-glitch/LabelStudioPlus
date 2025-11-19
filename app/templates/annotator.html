@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>标注员工作台</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f7f7f7;
+        }
+        .card {
+            width: 400px;
+            background: #fff;
+            padding: 30px;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+        }
+        button.logout {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+
+    <h1>标注员工作台</h1>
+
+    <p>您好，<span id="username"></span></p>
+
+    <button onclick="location.href='/tasks'">进入标注任务</button>
+
+    <button class="logout" onclick="logout()">退出登录</button>
+
+</div>
+
+<script>
+    
+    // 页面加载完成后执行检查
+    document.addEventListener('DOMContentLoaded', function() {
+    // 显示用户名
+    const user = JSON.parse(localStorage.getItem("auth_user"));
+    if (user) {
+        document.getElementById("username").innerText = user.username;
+    }else {
+        document.getElementById("username").innerText = "未登录";
+        document.querySelector('.card').innerHTML += '<p class="error">未检测到用户信息，请重新登录</p>';
+        // 延迟重定向，让用户看到错误信息
+        setTimeout(() => {
+            window.location.href = "/login";
+        }, 3000);
+    }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("annotator page loaded, checking user info...");
+        console.log("Current origin:", window.location.origin);
+                // 显示用户名
+        const userStr = localStorage.getItem("auth_user");
+        console.log("User data in localStorage:", userStr);  // 调试信息
+
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                document.getElementById("username").innerText = user.username || "未知用户";
+                console.log("User info displayed successfully");
+            } catch (e) {
+                console.error("解析用户信息失败:", e);
+                document.getElementById("username").innerText = "未知用户";
+            }
+        } else {
+            // 检查是否是通过session验证的，但localStorage中没有信息
+            console.log("No user data in localStorage, but session may be valid");
+            // 在这种情况下，我们相信后端的session验证
+            document.getElementById("username").innerText = "标注员";
+        }
+    });
+    function logout() {
+        console.log("Logout function called");
+        
+        // 禁用登出按钮防止重复点击
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+            logoutBtn.disabled = true;
+            logoutBtn.innerText = "正在退出...";
+        }
+        
+        try {
+            // 清除认证信息
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("auth_user");
+            localStorage.removeItem("Authorization");
+            console.log("Local storage items removed");
+            
+            // 发起后端登出请求（可选）
+            fetch('/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                console.log("Backend logout response:", response.status);
+            }).catch(error => {
+                console.error("Backend logout error:", error);
+            });
+        } catch (error) {
+            console.error("Error during logout:", error);
+        } finally {
+            // 确保无论如何都跳转到登录页面
+            console.log("Redirecting to login page");
+            window.location.href = "/login";
+        }
+    }
+      
+</script>
+
+</body>
+</html>

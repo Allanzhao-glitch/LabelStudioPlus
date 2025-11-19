@@ -8,7 +8,11 @@
     body {
       margin: 0;
       font-family: "Helvetica Neue", Arial, sans-serif;
-      background: #d6dcdd;
+      background-image: url("/static/images/background.jpg");
+      background-size: cover;          /* 背景图覆盖整个区域 */
+      background-position: center;     /* 背景图居中 */
+      background-repeat: no-repeat;    /* 背景图不重复 */
+      background-attachment: fixed;    /* 背景图固定不滚动 */
       display: flex;
       justify-content: right;
       align-items: center;
@@ -50,51 +54,70 @@
       <input type="password" id="password" name="password" placeholder="请输入密码" required>
       <button type="submit">登录</button>
     </form>
-    <p style="margin-top:12px; font-size:12px; color:#6b7280;">示例账号：<strong>mammotion</strong> / <strong>666</strong></p>
+    <p style="margin-top:12px; font-size:12px; color:#6b7280;">示例账号admin：<strong>mammotion</strong> / <strong>666</strong></p>
+    <p style="margin-top:12px; font-size:12px; color:#6b7280;">示例账号annotator：<strong>mammotion_bak</strong> / <strong>666</strong></p>
   </div>
 
   <script>
-    const form = document.getElementById('loginForm');
-    const errDiv = document.getElementById('err');
+  const form = document.getElementById('loginForm');
+  const errDiv = document.getElementById('err');
+  // 添加调试信息
+  console.log("Current host:", window.location.host);
+  console.log("Current origin:", window.location.origin);
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errDiv.style.display = 'none';
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errDiv.style.display = 'none';
+    const payload = {
+      username: form.username.value.trim(),
+      password: form.password.value
+    };
 
-      const payload = {
-        username: form.username.value.trim(),
-        password: form.password.value
-      };
+    try {
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      
+      const j = await res.json();
 
-      try {
-        const res = await fetch('/login', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        });
-        const j = await res.json();
-
-        if (!res.ok) {
-          errDiv.innerText = j.message || '登录失败';
-          errDiv.style.display = 'block';
-          return;
-        }
-
-        // 登录成功，保存 token
-        localStorage.setItem('auth_token', j.token);
-        localStorage.setItem('auth_user', JSON.stringify(j.user || {}));
-
-        // 跳转到首页或上传页
-        if (j.user.role === 'admin') {
-            window.location.href = '/admin';
-        } else {
-            window.location.href = '/annotator';
-        }
-      } catch (err) {
-        errDiv.innerText = '网络错误: ' + (err.message || err);
+      if (!res.ok) {
+        errDiv.innerText = j.msg || '登录失败';
         errDiv.style.display = 'block';
+        return;
       }
-    });
-  </script>
+
+      // 登录成功，保存 token 和用户信息
+      if (j.access_token) {
+        localStorage.setItem('access_token', j.access_token);
+      }
+      if (j.user) {
+        localStorage.setItem('auth_user', JSON.stringify(j.user));
+      }
+      
+      // 根据用户角色决定跳转路径
+      let redirectPath = '/';
+      if (j.user && j.user.role === 'admin') {
+        redirectPath = '/admin';
+      } else if (j.user && j.user.role === 'annotator') {
+        redirectPath = '/annotator';
+      }
+      
+
+      
+      // 使用setTimeout确保localStorage写入完成后再跳转
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 100);
+      
+    } catch (err) {
+      console.error('Network error:', err);
+      errDiv.innerText = '网络错误: ' + (err.message || err);
+      errDiv.style.display = 'block';
+    }
+  });
+</script>
 </body>
 </html>
