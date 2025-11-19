@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 - 标注系统</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: #d6dcdd;
+      display: flex;
+      justify-content: right;
+      align-items: center;
+      height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 400px;
+    }
+    h1 { margin-bottom: 16px; font-size: 22px; }  /*h1标题*/
+    label { display: block; margin-bottom: 4px; font-size: 14px; color: #374151; }
+    input[type="text"], input[type="password"] {
+      width: 100%; padding: 10px; margin-bottom: 16px;
+      border-radius: 8px; border: 1px solid #e6e9ef; font-size: 14px;
+    }
+    button {
+      width: 100%; padding: 12px;
+      border: none; border-radius: 8px;
+      background: #2563eb; color: #fff;
+      font-weight: 600; font-size: 16px;
+      cursor: pointer;
+    }
+    .error { color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>登录标注系统</h1>
+    <div id="err" class="error"></div>
+    <form id="loginForm">
+      <label for="username">用户名</label>
+      <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+      <label for="password">密码</label>
+      <input type="password" id="password" name="password" placeholder="请输入密码" required>
+      <button type="submit">登录</button>
+    </form>
+    <p style="margin-top:12px; font-size:12px; color:#6b7280;">示例账号：<strong>mammotion</strong> / <strong>666</strong></p>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errDiv = document.getElementById('err');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errDiv.style.display = 'none';
+
+      const payload = {
+        username: form.username.value.trim(),
+        password: form.password.value
+      };
+
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const j = await res.json();
+
+        if (!res.ok) {
+          errDiv.innerText = j.message || '登录失败';
+          errDiv.style.display = 'block';
+          return;
+        }
+
+        // 登录成功，保存 token
+        localStorage.setItem('auth_token', j.token);
+        localStorage.setItem('auth_user', JSON.stringify(j.user || {}));
+
+        // 跳转到首页或上传页
+        if (j.user.role === 'admin') {
+            window.location.href = '/admin';
+        } else {
+            window.location.href = '/annotator';
+        }
+      } catch (err) {
+        errDiv.innerText = '网络错误: ' + (err.message || err);
+        errDiv.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
